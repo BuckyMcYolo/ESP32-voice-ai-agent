@@ -11,6 +11,7 @@
 #include "initWifi.h"
 #include "httpRequest.h"
 #include "credentials.h"
+#include "playAudio.h"
 
 void setupHomeScreen()
 {
@@ -41,7 +42,7 @@ void setup()
   M5.Mic.config(micCfg);
   M5.Mic.begin();
   M5.Speaker.begin();        // Initialize speaker
-  M5.Speaker.setVolume(120); // Set initial volume
+  M5.Speaker.setVolume(255); // Set initial volume
 
   // Display some initial info
   setupHomeScreen();
@@ -64,6 +65,6 @@ void loop()
   }
   if (M5.BtnB.isPressed())
   {
-    httpTestRequest();
+    playAudio();
   }
 }
