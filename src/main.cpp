@@ -12,6 +12,7 @@
 #include "httpRequest.h"
 #include "credentials.h"
 #include "playAudio.h"
+#include "playAudio2.h"
 
 void setupHomeScreen()
 {
@@ -64,6 +65,10 @@ void loop()
     setupHomeScreen();
   }
   if (M5.BtnB.isPressed())
+  {
+    playAudio2();
+  }
+  if (M5.BtnC.isPressed())
   {
     playAudio();
   }
