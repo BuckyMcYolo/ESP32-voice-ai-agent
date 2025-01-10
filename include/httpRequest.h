@@ -16,7 +16,7 @@ void httpTestRequest()
         return;
     }
 
-    client->setCACert(rootCACertificate);
+    client->setCACert(awsRootCACertificate);
     client->setHandshakeTimeout(30); // Give more time for handshake
 
     HTTPClient https;
