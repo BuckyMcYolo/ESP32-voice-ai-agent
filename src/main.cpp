@@ -39,6 +39,16 @@ void setupHomeScreen()
   M5.Display.println("to view waveform.");
 }
 
+// Add this helper function at the top of your file
+void resetAudioSystem()
+{
+  M5.Speaker.stop();
+  M5.Speaker.end();
+  delay(100);
+  M5.Speaker.begin();
+  M5.Speaker.setVolume(128);
+}
+
 void setup()
 {
 
@@ -79,8 +89,8 @@ void setup()
   // Update config & begin microphone
   M5.Mic.config(micCfg);
   M5.Mic.begin();
-  M5.Speaker.begin();        // Initialize speaker
-  M5.Speaker.setVolume(255); // Set initial volume
+  // M5.Speaker.begin();        // Initialize speaker
+  // M5.Speaker.setVolume(255); // Set initial volume
 
   // Display some initial info
   setupHomeScreen();
@@ -94,14 +104,15 @@ void loop()
   // Only draw the waveform if the A button is held down
   if (M5.BtnA.isHolding())
   {
-    if (!M5.Mic.isRecording())
-    {
-      // Start or restart the recording session
-      currentSampleIndex = 0;
-      M5.Display.fillScreen(BLACK);
-      M5.Display.setCursor(0, 0);
-      M5.Display.println("Recording...");
-    }
+    // if (!M5.Mic.isRecording())
+    // {
+    //   // Start or restart the recording session
+    //   M5.Mic.begin();
+    //   currentSampleIndex = 0;
+    //   M5.Display.fillScreen(BLACK);
+    //   M5.Display.setCursor(0, 0);
+    //   M5.Display.println("Not Recording...");
+    // }
 
     // Only grab another chunk if we have space
     if ((currentSampleIndex + CHUNK_SIZE) <= MAX_SAMPLES)
@@ -118,6 +129,9 @@ void loop()
       drawWaveform(&recordBuffer[currentSampleIndex], CHUNK_SIZE);
 
       currentSampleIndex += CHUNK_SIZE;
+      M5.Display.setCursor(0, 80);
+      M5.Display.clearDisplay();
+      M5.Display.printf("Current sample index: %d\n", currentSampleIndex);
     }
     else
     {
@@ -126,9 +140,10 @@ void loop()
       M5.Display.println("Max length reached!");
     }
   }
-  else if (M5.BtnA.wasReleased() && M5.Mic.isRecording())
+  else if (M5.BtnA.wasReleased())
   {
-
+    // M5.Mic.end();
+    resetAudioSystem();
     size_t totalSamples = currentSampleIndex;
 
     M5.Display.fillScreen(BLACK);
@@ -168,9 +183,13 @@ void loop()
     memcpy(wavBuffer + headerSize, recordBuffer, rawBytes);
 
     // 2) Send the WAV via HTTP POST
-    postWavData(wavBuffer, wavTotalLength);
+    char *aiResponse = postWavData(wavBuffer, wavTotalLength);
 
-    // Free the WAV buffer
+    M5.Display.printf("AI Response: %s\n", aiResponse);
+
+    playAudioFromUrl(aiResponse);
+
+    // Free the WAV buffers
     heap_caps_free(wavBuffer);
 
     // Reset for next time
@@ -181,10 +200,12 @@ void loop()
   }
   if (M5.BtnB.isPressed())
   {
-    playAudioFromUrl("Hello my name is Ava");
+    resetAudioSystem();
+    playAudioFromUrl("Hello Alyssa");
   }
   if (M5.BtnC.isPressed())
   {
-    playAudio("https://speech-to-text-recordings-esp32.s3.us-east-2.amazonaws.com/audio/1736524260560-speech-deepgram.wav?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIATCKANPUGQOEUCMN4%2F20250110%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20250110T155101Z&X-Amz-Expires=3600&X-Amz-Signature=06bcd11efb08e4a27b98d76f91cea8a1128e895bc98c846406e86ed84c297b21&X-Amz-SignedHeaders=host&x-id=GetObject");
+    resetAudioSystem();
+    playAudio("https://speech-to-text-recordings-esp32.s3.us-east-2.amazonaws.com/audio/1736541486772-speech-elevenlabs.wav?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIATCKANPUGQOEUCMN4%2F20250110%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20250110T203806Z&X-Amz-Expires=3600&X-Amz-Signature=6501716b70cc48b259fbbcd47da99e1c79cf7c9258a4b5663fb761bb44544386&X-Amz-SignedHeaders=host&x-id=GetObject");
   }
 }

@@ -5,42 +5,94 @@
 
 #include "credentials.h"
 
-static const char *SERVER_URL = "YOUR_API_ENDPOINT";
+static const char *SERVER_URL = sttEndpoint;
 
-void postWavData(const uint8_t *wavData, size_t wavSize)
+char *postWavData(const uint8_t *wavData, size_t wavSize)
 {
-    WiFiClientSecure client;
-    client.setInsecure(); // or use root certificate
+    char *httpResult = NULL;
 
-    HTTPClient http;
-    if (http.begin(client, SERVER_URL))
+    // Input validation
+    if (!wavData || wavSize == 0)
     {
-        // Example: if your endpoint expects "audio/wav"
-        http.addHeader("Content-Type", "audio/wav");
+        httpResult = strdup("Invalid input data");
+        M5.Display.println(httpResult);
+        return httpResult;
+    }
 
-        // POST the entire WAV in one go
-        int httpResponseCode = http.sendRequest("POST", (uint8_t *)wavData, wavSize);
+    // Create secure client
+    WiFiClientSecure *client = new WiFiClientSecure;
+    if (!client)
+    {
+        httpResult = strdup("Failed to create client");
+        M5.Display.println(httpResult);
+        return httpResult;
+    }
 
-        if (httpResponseCode > 0)
+    // Configure client
+    // client->setCACert(awsRootCACertificate);
+    client->setInsecure();
+    client->setHandshakeTimeout(5000);
+    client->setTimeout(30000); // 30s timeout
+
+    // Create HTTP client and begin connection
+    HTTPClient http;
+    http.useHTTP10(true); // disable chunked encoding
+    http.setReuse(false); // don't reuse connection
+    if (!http.begin(*client, SERVER_URL))
+    {
+        httpResult = strdup("Failed to begin HTTP connection");
+        M5.Display.println(httpResult);
+        delete client;
+        return httpResult;
+    }
+
+    // Set headers and perform request
+    http.addHeader("Content-Type", "audio/wav");
+    int httpResponseCode = http.sendRequest("POST", (uint8_t *)wavData, wavSize);
+
+    // Handle HTTP response
+    if (httpResponseCode > 0)
+    {
+        Serial.printf("POST... code: %d\n", httpResponseCode);
+
+        if (httpResponseCode == HTTP_CODE_OK)
         {
-            Serial.printf("POST... code: %d\n", httpResponseCode);
-            if (httpResponseCode == HTTP_CODE_OK)
+            String response = http.getString();
+            httpResult = strdup(response.c_str());
+
+            if (!httpResult)
             {
-                String response = http.getString();
-                Serial.println(response);
-                M5.Display.println("Response:");
-                M5.Display.println(response);
+                httpResult = strdup("Memory allocation failed for response");
             }
+
+            Serial.println(response);
+            M5.Display.println("Response:");
+            M5.Display.println(httpResult ? httpResult : "Memory error");
         }
         else
         {
-            Serial.printf("POST... failed, error: %s\n", http.errorToString(httpResponseCode).c_str());
-            M5.Display.println("POST error!");
+            String statusMsg = "Unexpected status code: " + String(httpResponseCode);
+            httpResult = strdup(statusMsg.c_str());
+            M5.Display.println(httpResult ? httpResult : "Memory error");
         }
-        http.end();
     }
     else
     {
-        M5.Display.println("HTTP connection failed!");
+        String errorStr = "HTTP error: " + http.errorToString(httpResponseCode) + " (" + String(httpResponseCode) + ")";
+        httpResult = strdup(errorStr.c_str());
+        Serial.println(errorStr);
+        M5.Display.println(httpResult ? httpResult : "Memory error");
     }
+
+    // Final fallback if memory allocation failed at every step
+    if (!httpResult)
+    {
+        httpResult = strdup("Critical error: All allocations failed");
+    }
+
+    // Clean up
+    http.end();
+    delete client;
+
+    return httpResult;
 }
