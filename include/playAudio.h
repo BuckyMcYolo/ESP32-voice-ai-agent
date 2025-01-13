@@ -37,8 +37,6 @@ void playAudio(const char *url)
 
             if (len > 0)
             {
-                // Print available heap memory
-                M5.Display.printf("[DEBUG] Free heap: %d bytes\n", ESP.getFreeHeap());
 
                 uint8_t *buffer = (uint8_t *)malloc(len);
                 if (!buffer)
@@ -48,7 +46,6 @@ void playAudio(const char *url)
                     return;
                 }
 
-                // Read the complete file
                 WiFiClient *stream = https.getStreamPtr();
                 int totalRead = 0;
 
@@ -70,33 +67,14 @@ void playAudio(const char *url)
                 M5.Display.clearDisplay();
                 M5.Display.setCursor(0, 0);
 
-                // Debug: Print first 4 bytes
-                M5.Display.print("[DEBUG] First 4 bytes: ");
-                for (int i = 0; i < 4; i++)
-                {
-                    M5.Display.printf("%c", buffer[i]);
-                }
-                M5.Display.println("\n");
-                delay(5000);
-
-                // Print first 16 bytes as hex
-                M5.Display.print("[DEBUG] First 16 bytes (hex): ");
-                for (int i = 0; i < 16; i++)
-                {
-                    M5.Display.printf("%02X ", buffer[i]);
-                }
-                M5.Display.println();
-
                 if (totalRead == len)
                 {
-                    // Initialize speaker with specific settings
+                    // Initialize speaker
                     M5.Speaker.begin();
                     M5.Speaker.setVolume(128);
 
-                    // Try playing the WAV
                     M5.Display.println("[DEBUG] Starting playback");
                     bool result = M5.Speaker.playWav(buffer, totalRead);
-                    M5.Display.printf("[DEBUG] Playback result: %s\n", result ? "success" : "failed");
 
                     while (M5.Speaker.isPlaying())
                     {

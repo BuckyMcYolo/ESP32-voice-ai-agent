@@ -11,7 +11,6 @@ char *postWavData(const uint8_t *wavData, size_t wavSize)
 {
     char *httpResult = NULL;
 
-    // Input validation
     if (!wavData || wavSize == 0)
     {
         httpResult = strdup("Invalid input data");
@@ -19,7 +18,6 @@ char *postWavData(const uint8_t *wavData, size_t wavSize)
         return httpResult;
     }
 
-    // Create secure client
     WiFiClientSecure *client = new WiFiClientSecure;
     if (!client)
     {
@@ -29,15 +27,12 @@ char *postWavData(const uint8_t *wavData, size_t wavSize)
     }
 
     // Configure client
-    // client->setCACert(awsRootCACertificate);
-    client->setInsecure();
+    client->setCACert(awsRootCACertificate);
     client->setHandshakeTimeout(5000);
     client->setTimeout(30000); // 30s timeout
 
     // Create HTTP client and begin connection
     HTTPClient http;
-    http.useHTTP10(true); // disable chunked encoding
-    http.setReuse(false); // don't reuse connection
     if (!http.begin(*client, SERVER_URL))
     {
         httpResult = strdup("Failed to begin HTTP connection");
@@ -46,11 +41,11 @@ char *postWavData(const uint8_t *wavData, size_t wavSize)
         return httpResult;
     }
 
-    // Set headers and perform request
     http.addHeader("Content-Type", "audio/wav");
     int httpResponseCode = http.sendRequest("POST", (uint8_t *)wavData, wavSize);
 
-    // Handle HTTP response
+    M5.Display.printf("HTTP response code: %d\n", httpResponseCode);
+
     if (httpResponseCode > 0)
     {
         Serial.printf("POST... code: %d\n", httpResponseCode);
@@ -84,7 +79,6 @@ char *postWavData(const uint8_t *wavData, size_t wavSize)
         M5.Display.println(httpResult ? httpResult : "Memory error");
     }
 
-    // Final fallback if memory allocation failed at every step
     if (!httpResult)
     {
         httpResult = strdup("Critical error: All allocations failed");

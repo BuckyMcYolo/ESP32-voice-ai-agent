@@ -7,7 +7,7 @@
 
 #include "playAudio.h"
 
-void playAudioFromUrl(const char *text)
+void playAudioFromText(const char *text)
 {
     WiFiClientSecure *client = new WiFiClientSecure;
 
